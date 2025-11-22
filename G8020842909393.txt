@@ -1,0 +1,369 @@
+-- Carregar serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-----------------------------------------------------
+-- SOM DE CARREGAMENTO
+-----------------------------------------------------
+spawn(function()
+    pcall(function()
+        local s = Instance.new("Sound")
+        s.SoundId = "rbxassetid://6651870129"
+        s.Volume = 2.5
+        s.PlayOnRemove = true
+        s.Parent = SoundService
+        s:Destroy()
+    end)
+end)
+
+-----------------------------------------------------
+-- LOADING SCREEN
+-----------------------------------------------------
+do
+    local gui = Instance.new("ScreenGui")
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    gui.IgnoreGuiInset = true
+
+    local bg = Instance.new("Frame", gui)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.new(0,0,0)
+
+    local txt = Instance.new("TextLabel", bg)
+    txt.Size = UDim2.new(1,0,1,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = "Carregando Greex Hub..."
+    txt.TextScaled = true
+    txt.Font = Enum.Font.GothamBold
+    txt.TextColor3 = Color3.new(1,1,1)
+
+    task.wait(2)
+    gui:Destroy()
+end
+
+-----------------------------------------------------
+-- UI
+-----------------------------------------------------
+local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/matheuzxs/RedzlibV5Modify/refs/heads/main/MelhorQueFluent",true))()
+local Window = redzlib:MakeWindow({
+    Title = "Greex Hub V2.7",
+    SubTitle = "By Dark_330"
+})
+
+local Tab1 = Window:MakeTab({
+    Name = "cherry",
+    Icon = "rbxassetid://6031094678",
+    PremiumOnly = false
+})
+
+Tab1:AddButton({Name = "Bem-Vindo No Greex Hub 2.7!", Callback = function() end})
+Window:AddMinimizeButton({Button = { Image = "rbxassetid://15989248378", BackgroundTransparency = 0 }, Corner = { CornerRadius = UDim.new(35, 1) }})
+
+-----------------------------------------------------
+-- FUNÇÃO DE ROLE
+-----------------------------------------------------
+local function GetRole(plr)
+    local backpack = plr:FindFirstChild("Backpack")
+    local char = plr.Character
+    local toolName = nil
+
+    if backpack then
+        local tool = backpack:FindFirstChildOfClass("Tool")
+        if tool then toolName = tool.Name end
+    end
+
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then toolName = tool.Name end
+    end
+
+    if toolName == "Knife" then return "Murder"
+    elseif toolName == "Gun" then return "Sheriff"
+    else return "Innocent" end
+end
+
+-----------------------------------------------------
+-- ESP PLAYERS
+-----------------------------------------------------
+local ESP_ON = false
+local ESP_Objects = {}
+
+local function ClearESP()
+    for plr, obj in pairs(ESP_Objects) do
+        if obj then obj:Destroy() end
+    end
+    table.clear(ESP_Objects)
+end
+
+local function CreateESP(plr)
+    if plr == LocalPlayer then return end
+    if ESP_Objects[plr] then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(4,0,1.5,0)
+    billboard.AlwaysOnTop = true
+
+    local label = Instance.new("TextLabel", billboard)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+
+    ESP_Objects[plr] = billboard
+end
+
+local function UpdateESP()
+    if not ESP_ON then ClearESP() return end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if not ESP_Objects[plr] then CreateESP(plr) end
+            local gui = ESP_Objects[plr]
+            local role = GetRole(plr)
+            gui.Parent = plr.Character.HumanoidRootPart
+            local label = gui:FindFirstChildOfClass("TextLabel")
+            if role == "Murder" then
+                label.Text = plr.Name.." | Murder"
+                label.TextColor3 = Color3.new(1,0,0)
+            elseif role == "Sheriff" then
+                label.Text = plr.Name.." | Sheriff"
+                label.TextColor3 = Color3.new(0,0,1)
+            else
+                label.Text = plr.Name.." | Innocent"
+                label.TextColor3 = Color3.new(0,1,0)
+            end
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(UpdateESP)
+Tab1:AddToggle({Name = "ESP Players", Default = false, Callback = function(v) ESP_ON = v if not v then ClearESP() end end})
+
+-----------------------------------------------------
+-- AIMBOT NO MURDER (MOBILE)
+-----------------------------------------------------
+local AIMBOT_ON = false
+local function FindMurder()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if GetRole(plr) == "Murder" then return plr end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if AIMBOT_ON then
+        local Murder = FindMurder()
+        if Murder and Murder.Character and Murder.Character:FindFirstChild("Head") then
+            workspace.CurrentCamera.CFrame =
+                CFrame.new(workspace.CurrentCamera.CFrame.Position, Murder.Character.Head.Position)
+        end
+    end
+end)
+
+Tab1:AddToggle({Name = "Aimbot Murder (Mobile)", Default = false, Callback = function(v) AIMBOT_ON = v end})
+
+-----------------------------------------------------
+-- LISTA DE PLAYERS
+-----------------------------------------------------
+local SelectedPlayer = nil
+local PlayerNames = {}
+
+local function GetPlayersList()
+    table.clear(PlayerNames)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then table.insert(PlayerNames, plr.Name) end
+    end
+    return PlayerNames
+end
+
+local Dropdown = Tab1:AddDropdown({Name = "Players Lista", Options = GetPlayersList(), Callback = function(Value)
+    SelectedPlayer = Players:FindFirstChild(Value)
+end})
+
+local function UpdatePlayerDropdown()
+    Dropdown.Options = GetPlayersList()
+    if Dropdown.Refresh then Dropdown:Refresh() end
+end
+
+Players.PlayerAdded:Connect(UpdatePlayerDropdown)
+Players.PlayerRemoving:Connect(UpdatePlayerDropdown)
+UpdatePlayerDropdown()
+
+-----------------------------------------------------
+-- FLING
+-----------------------------------------------------
+local FLING_ON = false
+local function FlingTarget(plr)
+    if not plr then return end
+    spawn(function()
+        while FLING_ON and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") do
+            local myChar = LocalPlayer.Character
+            local targetChar = plr.Character
+            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                myChar.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame
+                myChar.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(5000,5000,5000)
+            end
+            task.wait()
+        end
+    end)
+    plr.CharacterAdded:Connect(function() FLING_ON = false end)
+end
+
+Tab1:AddToggle({Name = "Flingar Player", Default = false, Callback = function(v) FLING_ON = v if v and SelectedPlayer then FlingTarget(SelectedPlayer) end end})
+
+-----------------------------------------------------
+-- AUTO SHOOT MURDER (ANTI PAREDE)
+-----------------------------------------------------
+local AUTO_SHOOT = false
+local function MurderVisible(murder)
+    if not murder.Character then return false end
+    local hrp = murder.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    local cam = workspace.CurrentCamera
+    local origin = cam.CFrame.Position
+    local direction = (hrp.Position - origin).Unit * 5000
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    local result = workspace:Raycast(origin, direction, params)
+    return result and result.Instance:IsDescendantOf(murder.Character)
+end
+
+RunService.RenderStepped:Connect(function()
+    if AUTO_SHOOT then
+        local Murder = FindMurder()
+        if Murder and Murder.Character and Murder.Character:FindFirstChild("HumanoidRootPart") and MurderVisible(Murder) then
+            workspace.CurrentCamera.CFrame =
+                CFrame.new(workspace.CurrentCamera.CFrame.Position, Murder.Character.HumanoidRootPart.Position)
+        end
+    end
+end)
+
+Tab1:AddToggle({Name = "Auto Shoot Murder (Anti parede Mobile)", Default = false, Callback = function(v) AUTO_SHOOT = v end})
+
+-----------------------------------------------------
+-- AIMBOT TECLA E / PC (TOGGLE)
+-----------------------------------------------------
+local AIMBOT_KEY = false
+local AIMBOT_ANTI = false
+local AIMBOT_ACTIVE = false -- Toggle real
+
+local function FindMurderPlayer()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if GetRole(p) == "Murder" and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            return p
+        end
+    end
+end
+
+local function HasWall(hrp)
+    local origin = workspace.CurrentCamera.CFrame.Position
+    local dir = (hrp.Position - origin).Unit * 900
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    local result = workspace:Raycast(origin, dir, params)
+    if not result then return false end
+    return not result.Instance:IsDescendantOf(hrp.Parent)
+end
+
+UIS.InputBegan:Connect(function(i, gpe)
+    if gpe then return end
+    if i.KeyCode == Enum.KeyCode.E then
+        if AIMBOT_KEY or AIMBOT_ANTI then
+            AIMBOT_ACTIVE = not AIMBOT_ACTIVE
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if AIMBOT_ACTIVE then
+        local M = FindMurderPlayer()
+        if M then
+            local hrp = M.Character.HumanoidRootPart
+            if AIMBOT_ANTI then
+                if not HasWall(hrp) then
+                    workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, hrp.Position)
+                end
+            else
+                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, hrp.Position)
+            end
+        end
+    end
+end)
+
+Tab1:AddToggle({Name = "Aimbot Tecla E(PC)", Default = false, Callback = function(v) AIMBOT_KEY = v end})
+Tab1:AddToggle({Name = "Aimbot Tecla E (anti parede PC)", Default = false, Callback = function(v) AIMBOT_ANTI = v end})
+
+-----------------------------------------------------
+-- KILL PLAYER / KILL ALL FIXO + NOCLIP
+-----------------------------------------------------
+local KILL_PLAYER_ON = false
+local KILL_ALL_ON = false
+
+local function KeepPlayerInFront(plr)
+    spawn(function()
+        while KILL_PLAYER_ON and plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") do
+            local hrp = plr.Character.HumanoidRootPart
+            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not myHRP then break end
+
+            -- Noclip do jogador
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+
+            hrp.CFrame = CFrame.new(myHRP.Position + Vector3.new(0,3,0))
+            task.wait(0.05)
+        end
+    end)
+end
+
+local function KeepAllInFront()
+    spawn(function()
+        while KILL_ALL_ON do
+            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not myHRP then break end
+
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = plr.Character.HumanoidRootPart
+
+                    -- Noclip do jogador
+                    for _, part in ipairs(plr.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+
+                    hrp.CFrame = CFrame.new(myHRP.Position + Vector3.new(0,3,0))
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end
+
+Tab1:AddToggle({
+    Name = "Kill Player (Murder)",
+    Default = false,
+    Callback = function(v)
+        KILL_PLAYER_ON = v
+        if v and SelectedPlayer then
+            KeepPlayerInFront(SelectedPlayer)
+        end
+    end
+})
+
+Tab1:AddToggle({
+    Name = "Kill All (Murder)",
+    Default = false,
+    Callback = function(v)
+        KILL_ALL_ON = v
+        if v then
+            KeepAllInFront()
+        end
+    end
+})
